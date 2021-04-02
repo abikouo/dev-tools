@@ -79,56 +79,6 @@ public_ip=$(awk -F "@" '{print $2}' <<< $target)
 info "VM configuration { host: '$target', public_ip: '$public_ip' }" 
 
 rc_file="/tmp/${vm_name}.k8s_config"
-# info "Download kubectl executable"
-# ssh $target '
-#     curl -L -o /tmp/kubectl "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-#     chmod +x /tmp/kubectl
-#     sudo mv /tmp/kubectl /usr/local/bin'
-
-# echo "kind: Cluster
-# apiVersion: kind.x-k8s.io/v1alpha4
-# networking:
-#   apiServerAddress: $public_ip
-#   apiServerPort: 6443" > /tmp/kind_${vm_name}.yaml
-
-# info "Transfer cluster config"  
-# scp /tmp/kind_${vm_name}.yaml $target:/tmp/kind.yaml
-
-# info "Download kind executable"
-# ssh $target sudo curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.9.0/kind-linux-amd64
-
-# info "Change mod for executable kind and kubectl"
-# ssh $target sudo chmod +x /usr/local/bin/kind /usr/local/bin/kubectl
-
-# info "Disable updates"
-# ssh $target sudo dnf -y --disablerepo updates install podman
-
-# info "Create k8s cluser"
-# ssh $target sudo /usr/local/bin/kind create cluster --config /tmp/kind.yaml
-
-# info "Create service account named k8sadmin"
-# ssh $target sudo kubectl create serviceaccount k8sadmin -n kube-system
-
-# info "Add cluster role binding for cluster admin"
-# ssh $target sudo kubectl create clusterrolebinding k8sadmin --clusterrole=cluster-admin --serviceaccount=kube-system:k8sadmin
-
-# info "View cluster role binding"
-# ssh $target sudo kubectl create clusterrolebinding k8sadmin-view --clusterrole view --user k8sadmin
-
-# info "Create cluster role binding for secret reader"
-# ssh $target sudo kubectl create clusterrolebinding k8sadmin-secret-reader --clusterrole secret-reader --user k8sadmin
-
-
-# info "Create local cluster config"
-# ssh $target sudo kubectl -n kube-system describe secret $(ssh $target sudo kubectl -n kube-system get serviceaccount/kubeconfig-sa -o jsonpath='{.secrets[0].name}') | awk '/token:/ {print "export K8S_AUTH_API_KEY=" $2}' > ${rc_file}
-# echo export K8S_AUTH_VERIFY_SSL=False >> ${rc_file}
-# echo export K8S_AUTH_HOST=https://${public_ip}:6443 >> ${rc_file}
-
-# info "Full details for K8S configuration located here => {\033[0;32m${rc_file}\033[0m}"
-
-# ssh $target sudo kind get kubeconfig > ${kube_file}
-
-# info "kubeconfig located here => {\033[0;32m${kube_file}\033[0m}"
 
 
 tmp_file="/tmp/configure_kube_cluster.sh"
