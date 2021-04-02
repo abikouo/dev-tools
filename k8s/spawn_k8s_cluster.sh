@@ -70,7 +70,7 @@ if [ $? -ne 0 ]; then
 fi
 
 
-set -eu
+set -eux
 info "Start vm { name: '$vm_name', memory: '$memory', distro: '$linux_distro' }" 
 vl start $linux_distro --memory $memory --name $vm_name
 

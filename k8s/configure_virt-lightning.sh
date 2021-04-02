@@ -23,3 +23,9 @@ sudo chmod 777 /var/lib/virt-lightning/pool /var/lib/virt-lightning/pool/upstrea
 
 # fetch fedora distribution
 vl fetch fedora-33
+
+# Generate ssh key
+ssh-keygen -t rsa -b 4096
+
+# generate ssh config
+echo "StrictHostKeyChecking no" > ~/.ssh/ssh_config
