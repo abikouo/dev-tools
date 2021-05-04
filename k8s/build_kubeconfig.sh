@@ -3,7 +3,7 @@
 set -eux
 
 file=$1
-kube_config="~/.kube/config"
+kube_config="$HOME/.kube/config"
 
 if [ "$#" -ne 1 ]; then
 	kube_config=$2
