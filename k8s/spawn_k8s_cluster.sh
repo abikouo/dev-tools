@@ -87,7 +87,6 @@ echo "#!/bin/bash" > $tmp_file
 
 echo "set -eu" >> $tmp_file
 echo "curl -L -o /tmp/kubectl \"https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl\" " >> $tmp_file
-echo "chmod +x /tmp/kubectl" >> $tmp_file
 echo "sudo mv /tmp/kubectl /usr/local/bin" >> $tmp_file
 
 echo "echo \"kind: Cluster\" > /tmp/cluster_config.yaml" >> $tmp_file
