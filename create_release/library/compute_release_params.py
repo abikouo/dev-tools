@@ -94,6 +94,7 @@ class ComputeReleaseParams(AnsibleModule):
             github_upstream=f"https://github.com/{self.repo_org}/{self.repo_name}",
             stable_branch=f"stable-{self.v.major}.{self.v.minor}",
             release_branch=f"prepare_release_{self.version}",
+            github_upstream_name=f"{self.repo_org}/{self.repo_name}",
         )
 
 def main():

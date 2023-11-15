@@ -2,7 +2,6 @@
   hosts: localhost
   gather_facts: false
 
-
   tasks:
     - name: Ensure release_version is defined
       fail:
@@ -68,6 +67,7 @@
               - yq
               - ansible-core
               - antsibull-changelog
+              - pygithub
             virtualenv: "{{ virtualenv_path }}"
             virtualenv_command: "{{ release_virtualenv_command | default(omit) }}"
             virtualenv_python: "{{ release_virtualenv_python | default(omit) }}"
@@ -100,40 +100,31 @@
             cmd: |
               git add -A
               git commit -m "Prepare Release {{ release_version }}"
+              git push -f -u origin {{ release_params.release_branch }}
+            chdir: "{{ clone_path }}"
+
+        - name: create pull request on upstream branch
+          create_pr:
+            repository: "{{ release_params.github_upstream_name }}"
+            base: "{{ release_params.stable_branch }}"
+            head: "{{ release_params.github_user }}:{{ release_params.release_branch }}"
+            body: |
+              ##### SUMMARY
+              - Run `antsibull-changelog` to generate release notes.
+              - Update `galaxy.yml` version to `{{ release_version }}`
+
+              ##### ISSUE TYPE
+              - Release Pull Request
+            title: "Prepare release {{ release_version }}"
+            token: "{{ release_params.github_token }}"
+          register: pr
+
+        - name: Display output
+          debug:
+            msg: "The following PR has been created: {{ pr.url }}"
 
       always:
         - name: Delete temporary directory
           file:
             state: absent
             path: "{{ tmpd.path }}"
-
-
-
-        
-
-
-#         # - name: Push changes to branch on Github repository
-#         #   id: push-changes
-#         #   run: |
-#         #     git checkout -b "prepare_release_${RELEASE_VERSION}"
-#         #     git add -A
-#         #     git -c user.name="$GIT_USER_NAME" -c user.email="$GIT_USER_EMAIL" commit -m "Release ${{ inputs.version }}" --author="$GIT_AUTHOR"
-#         #     git push origin "prepare_release_${RELEASE_VERSION}"
-#         #     echo "created_branch=prepare_release_${RELEASE_VERSION}" >> $GITHUB_OUTPUT
-#         #   shell: bash
-#         #   env:
-#         #     RELEASE_VERSION: ${{ inputs.version }}
-#         #     GITHUB_TOKEN: ${{ inputs.token }}
-#         #     GIT_USER_NAME: "github-actions[bot]"
-#         #     GIT_USER_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
-#         #     GIT_AUTHOR: "${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>"
-
-#         # - name: Create Pull Request
-#         #   uses: ansible-network/github_actions/.github/actions/create_pullrequest@main
-#         #   with:
-#         #     token: ${{ inputs.token }}
-#         #     repository: ${{ inputs.repository }}
-#         #     base_branch: ${{ steps.create-branch.outputs.release_branch }}
-#         #     head_branch: ${{ steps.push-changes.outputs.created_branch }}
-#         #     title: "Prepare release ${{ inputs.version }}"
-#         #     body: "Automatic changes for Release ${{ inputs.version }}"
