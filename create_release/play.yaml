@@ -1,0 +1,139 @@
+- name: Create release branch
+  hosts: localhost
+  gather_facts: false
+
+
+  tasks:
+    - name: Ensure release_version is defined
+      fail:
+        msg: "Release version should be defined using 'release_version'"
+      when: release_version is undefined
+
+    - name: Ensure release_repository is defined
+      fail:
+        msg: "Release repository should be defined using 'release_repository'"
+      when: release_repository is undefined
+
+    - name: Compute release parameters
+      compute_release_params:
+        version: "{{ release_version }}"
+        repository: "{{ release_repository }}"
+      register: release_params
+
+    - name: create temporary for repository
+      tempfile:
+        suffix: .release
+        state: directory
+      register: tmpd
+
+    - vars:
+        clone_path: "{{ tmpd.path }}/repository"
+        virtualenv_path: "{{ tmpd.path }}/virtualenv"
+      block:
+        - name: git clone fork
+          shell:
+            cmd: "git clone {{ release_params.github_fork }} {{ clone_path }}"
+
+        - name: git add upstream repository
+          shell:
+            cmd: |
+              git remote add master {{ release_params.github_upstream }}
+              git fetch master
+            chdir: "{{ clone_path }}"
+
+        - name: check if stable branch exists
+          shell:
+            cmd: 'git checkout master/{{ release_params.stable_branch }}'
+            chdir: "{{ clone_path }}"
+          register: checkout_stable
+          ignore_errors: true
+
+        - name: create upstream branch
+          shell:
+            cmd: |
+              git checkout -B {{ release_params.stable_branch }} master/main
+              git push -u master {{ release_params.stable_branch }}
+            chdir: "{{ clone_path }}"
+          when: checkout_stable is failed
+
+        - name: create release branch
+          shell:
+            cmd: 'git checkout -B {{ release_params.release_branch }} master/{{ release_params.stable_branch }}'
+            chdir: "{{ clone_path }}"
+
+        - name: Create virtual env for testing
+          pip:
+            name:
+              - tox
+              - yq
+              - ansible-core
+              - antsibull-changelog
+            virtualenv: "{{ virtualenv_path }}"
+            virtualenv_command: "{{ release_virtualenv_command | default(omit) }}"
+            virtualenv_python: "{{ release_virtualenv_python | default(omit) }}"
+
+        - name: Run tox prepare_release environment
+          shell:
+            cmd: >
+              . {{ tmpd.path }}/virtualenv/bin/activate && 
+              tox -e prepare_release -vv
+            chdir: "{{ clone_path }}"
+          ignore_errors: true
+          register: tox_prepare_release
+
+        - name: Run antsibull-changelog
+          shell:
+            cmd: >
+              . {{ tmpd.path }}/virtualenv/bin/activate && 
+              antsibull-changelog release --verbose --version '{{ release_version }}'
+            chdir: "{{ clone_path }}"
+
+        - name: Update galaxy.yml version
+          shell:
+            cmd: >
+              . {{ tmpd.path }}/virtualenv/bin/activate &&
+              yq -yi '.version = "{{ release_version }}"' galaxy.yml
+            chdir: "{{ clone_path }}"
+
+        - name: commit changes to release branch and push branch to user fork
+          shell:
+            cmd: |
+              git add -A
+              git commit -m "Prepare Release {{ release_version }}"
+
+      always:
+        - name: Delete temporary directory
+          file:
+            state: absent
+            path: "{{ tmpd.path }}"
+
+
+
+        
+
+
+#         # - name: Push changes to branch on Github repository
+#         #   id: push-changes
+#         #   run: |
+#         #     git checkout -b "prepare_release_${RELEASE_VERSION}"
+#         #     git add -A
+#         #     git -c user.name="$GIT_USER_NAME" -c user.email="$GIT_USER_EMAIL" commit -m "Release ${{ inputs.version }}" --author="$GIT_AUTHOR"
+#         #     git push origin "prepare_release_${RELEASE_VERSION}"
+#         #     echo "created_branch=prepare_release_${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+#         #   shell: bash
+#         #   env:
+#         #     RELEASE_VERSION: ${{ inputs.version }}
+#         #     GITHUB_TOKEN: ${{ inputs.token }}
+#         #     GIT_USER_NAME: "github-actions[bot]"
+#         #     GIT_USER_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
+#         #     GIT_AUTHOR: "${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>"
+
+#         # - name: Create Pull Request
+#         #   uses: ansible-network/github_actions/.github/actions/create_pullrequest@main
+#         #   with:
+#         #     token: ${{ inputs.token }}
+#         #     repository: ${{ inputs.repository }}
+#         #     base_branch: ${{ steps.create-branch.outputs.release_branch }}
+#         #     head_branch: ${{ steps.push-changes.outputs.created_branch }}
+#         #     title: "Prepare release ${{ inputs.version }}"
+#         #     body: "Automatic changes for Release ${{ inputs.version }}"
