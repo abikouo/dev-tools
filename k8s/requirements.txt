@@ -1,4 +1,0 @@
-libvirt-python
-pyyaml
-urwid
-virt-lightning
