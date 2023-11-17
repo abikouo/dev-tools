@@ -2,4 +2,4 @@
 
 ## Release a collection
 
-[How to prepare release](https://www.python.org/doc/sunset-python-2/).
+[How to prepare release](https://github.com/abikouo/dev-tools/blob/main/create_release/README.md).
