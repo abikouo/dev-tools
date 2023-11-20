@@ -60,11 +60,11 @@
             cmd: 'git checkout -B {{ release_params.release_branch }} master/{{ release_params.stable_branch }}'
             chdir: "{{ clone_path }}"
 
-        - name: Create virtual env for testing
+        - name: Create virtual env to install python required module in
           pip:
             name:
               - tox
-              - yq
+              - ruamel.yaml
               - ansible-core
               - antsibull-changelog
               - pygithub
@@ -89,11 +89,9 @@
             chdir: "{{ clone_path }}"
 
         - name: Update galaxy.yml version
-          shell:
-            cmd: >
-              . {{ tmpd.path }}/virtualenv/bin/activate &&
-              yq -yi '.version = "{{ release_version }}"' galaxy.yml
-            chdir: "{{ clone_path }}"
+          update_galaxy:
+            version: "{{ release_version }}"
+            path: "{{ clone_path }}"
 
         - name: commit changes to release branch and push branch to user fork
           shell:
@@ -122,6 +120,7 @@
         - name: Display output
           debug:
             msg: "The following PR has been created: {{ pr.url }}"
+          when: pr is changed
 
       always:
         - name: Delete temporary directory

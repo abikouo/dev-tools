@@ -1,3 +1,3 @@
 ---
-release_version: ""
-release_repository: "ansible-collections/xxx"
+release_version: "2.0.0"
+release_repository: "ansible-collections/cloud.terraform"
