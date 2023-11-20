@@ -1,0 +1,53 @@
+- name: Create Github tag
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Ensure release_tag is defined
+      fail:
+        msg: "Release tag should be defined using 'release_tag'"
+      when: release_tag is undefined
+
+    - name: Ensure release_repository is defined
+      fail:
+        msg: "Release repository should be defined using 'release_repository'"
+      when: release_repository is undefined
+
+    - name: Ensure tag exists into repository
+      ensure_tag:
+        tag: "{{ release_tag }}"
+        repository: "{{ release_repository }}"
+      register: ensure_tag
+      failed_when: not ensure_tag.exists
+
+    - name: create temporary for repository
+      tempfile:
+        suffix: .release
+        state: directory
+      register: tmpd
+
+    - vars:
+        clone_path: "{{ tmpd.path }}/repository"
+        virtualenv_path: "{{ tmpd.path }}/virtualenv"
+      block:
+        - name: Create virtual env to install python required module in
+          pip:
+            name:
+              - pygithub
+            virtualenv: "{{ virtualenv_path }}"
+            virtualenv_command: "{{ release_virtualenv_command | default(omit) }}"
+            virtualenv_python: "{{ release_virtualenv_python | default(omit) }}"
+        
+        - name: Create Github Release
+          create_release:
+            tag: "{{ release_tag }}"
+            repository: "{{ release_repository }}"
+            name: "{{ release_name | default(omit) }}"
+          vars:
+            ansible_python_interpreter: "{{ tmpd.path }}/virtualenv/bin/python"
+
+      always:
+        - name: Delete temporary directory
+          file:
+            state: absent
+            path: "{{ tmpd.path }}"

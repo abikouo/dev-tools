@@ -92,6 +92,8 @@
           update_galaxy:
             version: "{{ release_version }}"
             path: "{{ clone_path }}"
+          vars:
+            ansible_python_interpreter: "{{ tmpd.path }}/virtualenv/bin/python"
 
         - name: commit changes to release branch and push branch to user fork
           shell:
@@ -116,6 +118,8 @@
             title: "Prepare release {{ release_version }}"
             token: "{{ release_params.github_token }}"
           register: pr
+          vars:
+            ansible_python_interpreter: "{{ tmpd.path }}/virtualenv/bin/python"
 
         - name: Display output
           debug:
